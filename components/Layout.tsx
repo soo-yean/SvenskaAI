@@ -64,9 +64,11 @@ const Layout: React.FC<LayoutProps> = ({
       {/* Mobile Header */}
       <div className="md:hidden bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700 z-50">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-sweden-blue flex items-center justify-center text-sweden-yellow font-bold border-2 border-sweden-yellow">
-            S
-          </div>
+          <img
+            src="/logo.svg"
+            alt="SvenskaAi Logo"
+            className="w-8 h-8 object-contain"
+          />
           <span className="text-xl font-bold tracking-tight">
             Svenska<span className="text-sweden-blue">Ai</span>
           </span>
@@ -90,14 +92,16 @@ const Layout: React.FC<LayoutProps> = ({
             isCollapsed ? "justify-center" : "space-x-2"
           } mb-6 relative overflow-hidden whitespace-nowrap`}
         >
-          <div className="w-10 h-10 rounded-full bg-sweden-blue flex items-center justify-center text-sweden-yellow font-bold text-xl border-2 border-sweden-yellow shadow-[0_0_15px_rgba(254,204,0,0.3)] shrink-0 transition-all duration-300">
-            S
-          </div>
+          <img
+            src="/logo.svg"
+            alt="SvenskaAi Logo"
+            className="w-10 h-10 shrink-0 transition-all duration-300 object-contain"
+          />
           <div
             className={`transition-all duration-300 ease-in-out origin-left ${
               isCollapsed
                 ? "w-0 opacity-0 scale-95"
-                : "w-auto opacity-100 scale-100 ml-2"
+                : "w-auto opacity-100 scale-100"
             }`}
           >
             <span className="text-2xl font-bold tracking-tight whitespace-nowrap">
