@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ChatMessage, QuizQuestion, TtsVoice } from "../types";
 
-const apiKey = process.env.API_KEY || '';
+const apiKey = process.env.API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
 // Helper to decode audio for TTS
@@ -17,48 +17,83 @@ export const decodeAudioData = async (
   for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  
+
   // Ensure we have an even number of bytes for Int16Array
   const alignedLength = bytes.length - (bytes.length % 2);
   const dataInt16 = new Int16Array(bytes.buffer, 0, alignedLength / 2);
-  
+
   const numChannels = 1;
-  const buffer = audioContext.createBuffer(numChannels, dataInt16.length, sampleRate);
+  const buffer = audioContext.createBuffer(
+    numChannels,
+    dataInt16.length,
+    sampleRate
+  );
   const channelData = buffer.getChannelData(0);
-  
+
   for (let i = 0; i < dataInt16.length; i++) {
     // Normalize 16-bit integer to float [-1.0, 1.0]
     channelData[i] = dataInt16[i] / 32768.0;
   }
-  
+
   return buffer;
 };
 
 export const generateDailyWord = async (): Promise<any> => {
   try {
     const model = "gemini-2.5-flash";
-    const prompt = "Generate a 'Word of the Day' for a Swedish learner. Return JSON with keys: swedish, english, exampleSentence (in Swedish), exampleTranslation (in English), and pronunciationTip.";
-    
+    const prompt =
+      "Generate a 'Word of the Day' for a Swedish learner. Return JSON with keys: swedish, english, exampleSentence (in Swedish), exampleTranslation (in English), and pronunciationTip.";
+
     const response = await ai.models.generateContent({
       model,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-                swedish: { type: Type.STRING },
-                english: { type: Type.STRING },
-                exampleSentence: { type: Type.STRING },
-                exampleTranslation: { type: Type.STRING },
-                pronunciationTip: { type: Type.STRING }
-            }
-        }
-      }
+          type: Type.OBJECT,
+          properties: {
+            swedish: { type: Type.STRING },
+            english: { type: Type.STRING },
+            exampleSentence: { type: Type.STRING },
+            exampleTranslation: { type: Type.STRING },
+            pronunciationTip: { type: Type.STRING },
+          },
+          required: [
+            "swedish",
+            "english",
+            "exampleSentence",
+            "exampleTranslation",
+            "pronunciationTip",
+          ],
+        },
+      },
     });
 
     if (response.text) {
-      return JSON.parse(response.text);
+      const data = JSON.parse(response.text);
+
+      // Runtime validation
+      const requiredKeys = [
+        "swedish",
+        "english",
+        "exampleSentence",
+        "exampleTranslation",
+        "pronunciationTip",
+      ];
+      const missingKeys = requiredKeys.filter((key) => !data[key]);
+
+      if (missingKeys.length > 0) {
+        console.warn(
+          `Missing keys in daily word response: ${missingKeys.join(", ")}`
+        );
+        // If swedish exists but others are missing, we might still be able to use it,
+        // but for now let's be strict to avoid broken UI
+        throw new Error(
+          `Invalid response structure. Missing: ${missingKeys.join(", ")}`
+        );
+      }
+
+      return data;
     }
     throw new Error("No data returned");
   } catch (error) {
@@ -67,7 +102,10 @@ export const generateDailyWord = async (): Promise<any> => {
   }
 };
 
-export const generateQuiz = async (topic: string, difficulty: string): Promise<QuizQuestion[]> => {
+export const generateQuiz = async (
+  topic: string,
+  difficulty: string
+): Promise<QuizQuestion[]> => {
   try {
     const model = "gemini-2.5-flash";
     const prompt = `Create a strict JSON array of 5 multiple-choice questions for learning Swedish. Topic: ${topic}. Difficulty: ${difficulty}. 
@@ -79,18 +117,18 @@ export const generateQuiz = async (topic: string, difficulty: string): Promise<Q
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    question: { type: Type.STRING },
-                    options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    correctAnswerIndex: { type: Type.INTEGER },
-                    explanation: { type: Type.STRING }
-                }
-            }
-        }
-      }
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correctAnswerIndex: { type: Type.INTEGER },
+              explanation: { type: Type.STRING },
+            },
+          },
+        },
+      },
     });
 
     if (response.text) {
@@ -103,17 +141,21 @@ export const generateQuiz = async (topic: string, difficulty: string): Promise<Q
   }
 };
 
-export const generateChatResponse = async (history: ChatMessage[], newMessage: string): Promise<string> => {
+export const generateChatResponse = async (
+  history: ChatMessage[],
+  newMessage: string
+): Promise<string> => {
   try {
     const chatSession = ai.chats.create({
       model: "gemini-2.5-flash",
       config: {
-        systemInstruction: "You are Sven, a friendly and encouraging Swedish language tutor. You speak a mix of English and Swedish. When the user speaks English, you teach them the Swedish equivalent. If they speak Swedish, you correct their grammar gently and keep the conversation going. Keep responses concise (under 80 words) unless explaining a complex grammar concept.",
+        systemInstruction:
+          "You are Sven, a friendly and encouraging Swedish language tutor. You speak a mix of English and Swedish. When the user speaks English, you teach them the Swedish equivalent. If they speak Swedish, you correct their grammar gently and keep the conversation going. Keep responses concise (under 80 words) unless explaining a complex grammar concept.",
       },
-      history: history.map(msg => ({
+      history: history.map((msg) => ({
         role: msg.role,
-        parts: [{ text: msg.text }]
-      }))
+        parts: [{ text: msg.text }],
+      })),
     });
 
     const result = await chatSession.sendMessage({ message: newMessage });
@@ -124,7 +166,9 @@ export const generateChatResponse = async (history: ChatMessage[], newMessage: s
   }
 };
 
-export const translateAndExplain = async (text: string): Promise<{translation: string, explanation: string}> => {
+export const translateAndExplain = async (
+  text: string
+): Promise<{ translation: string; explanation: string }> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -132,55 +176,63 @@ export const translateAndExplain = async (text: string): Promise<{translation: s
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-                translation: { type: Type.STRING },
-                explanation: { type: Type.STRING }
-            }
-        }
-      }
+          type: Type.OBJECT,
+          properties: {
+            translation: { type: Type.STRING },
+            explanation: { type: Type.STRING },
+          },
+        },
+      },
     });
-    
+
     if (response.text) {
-        return JSON.parse(response.text);
+      return JSON.parse(response.text);
     }
     throw new Error("Failed to translate");
   } catch (error) {
-    return { translation: "Error", explanation: "Could not process translation." };
+    return {
+      translation: "Error",
+      explanation: "Could not process translation.",
+    };
   }
 };
 
-export const generateSpeech = async (text: string, voiceName: string = 'Fenrir'): Promise<AudioBuffer | null> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-tts",
-            contents: [{ parts: [{ text }] }],
-            config: {
-                responseModalities: [Modality.AUDIO],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName }
-                    }
-                }
-            }
-        });
+export const generateSpeech = async (
+  text: string,
+  voiceName: string = "Fenrir"
+): Promise<AudioBuffer | null> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName },
+          },
+        },
+      },
+    });
 
-        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        
-        if (base64Audio) {
-             // Create a temporary context just for decoding
-             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-             try {
-                 const buffer = await decodeAudioData(base64Audio, audioContext, 24000);
-                 return buffer;
-             } finally {
-                 // Close the context to release hardware resources
-                 await audioContext.close();
-             }
-        }
-        return null;
-    } catch (e) {
-        console.error("TTS Error", e);
-        return null;
+    const base64Audio =
+      response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+    if (base64Audio) {
+      // Create a temporary context just for decoding
+      const audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
+      try {
+        const buffer = await decodeAudioData(base64Audio, audioContext, 24000);
+        return buffer;
+      } finally {
+        // Close the context to release hardware resources
+        await audioContext.close();
+      }
     }
-}
+    return null;
+  } catch (e) {
+    console.error("TTS Error", e);
+    return null;
+  }
+};
