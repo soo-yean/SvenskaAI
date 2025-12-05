@@ -1,0 +1,7 @@
+{
+  "name": "SvenskaAi - Swedish Tutor",
+  "description": "An intelligent Swedish language learning companion powered by Gemini. Features real-time chat with a virtual tutor, AI-generated quizzes, pronunciation practice, and deep grammatical analysis.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
