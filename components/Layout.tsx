@@ -87,11 +87,7 @@ const Layout: React.FC<LayoutProps> = ({
         ${isCollapsed ? "md:w-20" : "md:w-64"}
       `}
       >
-        <div
-          className={`p-6 hidden md:flex items-center ${
-            isCollapsed ? "justify-center" : "space-x-2"
-          } mb-6 relative overflow-hidden whitespace-nowrap`}
-        >
+        <div className="px-5 py-6 hidden md:flex items-center mb-6 relative overflow-hidden whitespace-nowrap">
           <img
             src="/logo.svg"
             alt="SvenskaAi Logo"
@@ -100,8 +96,8 @@ const Layout: React.FC<LayoutProps> = ({
           <div
             className={`transition-all duration-300 ease-in-out origin-left ${
               isCollapsed
-                ? "w-0 opacity-0 scale-95"
-                : "w-auto opacity-100 scale-100"
+                ? "w-0 opacity-0 scale-95 ml-0"
+                : "w-auto opacity-100 scale-100 ml-2"
             }`}
           >
             <span className="text-2xl font-bold tracking-tight whitespace-nowrap">
